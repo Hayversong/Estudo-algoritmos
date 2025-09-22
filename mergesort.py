@@ -42,3 +42,5 @@ def fase_1_ordenacao(input_file, tamanho_bloco):
 # criar_arquivo_teste('dados.txt', 1000)
 # blocos = fase_1_ordenacao('dados.txt', 100)
 # print(f'Arquivos temporários criados: {blocos}')
+
+#é pra tá funcionando guys tmj viu
