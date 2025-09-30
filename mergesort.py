@@ -7,6 +7,7 @@ N_REGISTROS = 500  # n > 50, conforme solicitado
 TAMANHO_BLOCO = 50  # Define o tamanho de cada bloco que cabe na memória (M)
 ARQUIVO_ENTRADA = 'dados_nao_ordenados.txt'
 ARQUIVO_SAIDA = 'dados_ordenados.txt'
+K = 5
 
 # ----------------------------------------------------
 # 1. FUNÇÃO PARA GERAR O ARQUIVO DE TESTE
@@ -71,54 +72,65 @@ def fase_1_ordenacao(input_file, tamanho_bloco):
 # ----------------------------------------------------
 # 3. FASE 2: INTERCALAÇÃO (K-WAY MERGE)
 # ----------------------------------------------------
-def fase_2_intercalacao(blocos_temporarios, output_file):
-    """
-    Realiza a intercalação dos K blocos temporários em um único arquivo de saída ordenado.
-    Utiliza um Min-Heap para o K-way Merge eficiente.
-    """
+def fase_2_intercalacao(blocos_temporarios, output_file, k):
+
     print("\n-> INÍCIO da Fase 2: Intercalação (Merge)")
     
-    # 1. Abrir todos os arquivos temporários para leitura
-    try:
-        arquivos = [open(bloco, 'r') for bloco in blocos_temporarios]
-    except FileNotFoundError:
-        print("Erro: Não foi possível abrir todos os arquivos temporários.")
-        return
+    round = 0
 
-    # 2. Inicializar o Min-Heap com o primeiro elemento de cada bloco
-    min_heap = []
-    for i, f in enumerate(arquivos):
-        linha = f.readline()
-        if linha:
-            # Tupla: (valor, índice_do_arquivo)
-            heapq.heappush(min_heap, (int(linha.strip()), i))
-            
-    # 3. Realizar o processo de Merge K-way
-    with open(output_file, 'w') as out_f:
-        while min_heap:
-            # Pega o menor valor da "cabeça" de todos os blocos
-            valor, indice_arquivo = heapq.heappop(min_heap)
-            
-            # Grava o menor valor no arquivo de saída final
-            out_f.write(str(valor) + '\n')
-            
-            # Tenta ler o próximo valor do mesmo arquivo de onde o menor veio
-            f_atual = arquivos[indice_arquivo]
-            linha = f_atual.readline()
-            
-            # Se houver mais dados no bloco, adiciona ao heap
-            if linha:
-                heapq.heappush(min_heap, (int(linha.strip()), indice_arquivo))
+    # Verifica se ainda existe mais de um arquivo
+    while len(blocos_temporarios) > 1:
 
-    # 4. Fechar todos os arquivos e limpar os temporários
-    for f in arquivos:
-        f.close()
-    
-    for bloco in blocos_temporarios:
-        os.remove(bloco)
+        novos_blocos = []
+
+        # Interacala K blocos temporários de cada vez
+        while blocos_temporarios:
+
+            temp_output = f'temp_{round}'
+
+            # Pega os K arquivo temporários a serem ordenados
+            blocos_intermediario = blocos_temporarios[:k]
+            blocos_temporarios = blocos_temporarios[k:]
+
+            files = [open(bloco, 'r') for bloco in blocos_intermediario]
+
+            if not files:
+                break
+
+            # Usa a árvore de Mean Heap para guardar os valores de forma ordenada
+            mh = []
+            for i, f in enumerate(files):
+                linha = f.readline()
+                if linha:
+                    heapq.heappush(mh, (int(linha.strip()), i))
+
+            with open(temp_output, 'w') as file:
+
+                while mh:
+
+                    valor, idx = heapq.heappop(mh)
+
+                    file.write(str(valor) + '\n')
+
+                    linha = files[idx].readline()
+
+                    if linha:
+                        heapq.heappush(mh, (int(linha.strip()), idx))
+
+                novos_blocos.append(temp_output)
+
+            # Fecha e exclui os arquivos
+            for f in files:
+                f.close()
+                os.remove(f.name)
+
+            round += 1
+
+        blocos_temporarios = novos_blocos
+
+    os.replace(novos_blocos[0], output_file)
         
     print("   Fase 2 concluída. Arquivo final ordenado gerado.")
-    print(f"   Arquivos temporários ({len(blocos_temporarios)}) removidos.")
 
 
 # ----------------------------------------------------
@@ -135,7 +147,7 @@ def executar_merge_sort_externo():
     
     # Tarefa 3: Segunda Fase (Intercalação)
     # A leitura dos arquivos temporários é feita aqui para a intercalação final.
-    fase_2_intercalacao(blocos, ARQUIVO_SAIDA)
+    fase_2_intercalacao(blocos, ARQUIVO_SAIDA, K)
 
     print("\n[SUCESSO] O processo de Merge Sort Externo foi concluído.")
     print(f"Verifique o arquivo: '{ARQUIVO_SAIDA}' para os resultados ordenados.")
